@@ -223,20 +223,21 @@
         let startY = 0;
 
         function initView() {
-            scale = 1; // 배율 100% 고정
+            // 지도가 한눈에 보이도록 적절한 초기 배율 설정 (예: 0.35 또는 0.4)
+            scale = 0.35; 
     
-            // 맵 컨테이너의 실제 크기 측정
+            // 맵 컨테이너의 실제 원본 크기 측정
             const containerWidth = container.offsetWidth;
             const containerHeight = container.offsetHeight;
     
-            // 접속한 브라우저 창(Window) 크기를 기준으로 중앙 좌표 계산
-            pointX = (window.innerWidth - containerWidth) / 2;
-            pointY = (window.innerHeight - containerHeight) / 2;
+            // 축소된 배율(scale)이 적용된 상태를 반영하여 화면 중앙 좌표 계산
+            pointX = (window.innerWidth - (containerWidth * scale)) / 2;
+            pointY = (window.innerHeight - (containerHeight * scale)) / 2;
         
             updateTransform();
         }
 
-        // Apply Transform Updates
+                // Apply Transform Updates
         function updateTransform() {
             container.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
             zoomText.innerText = `${Math.round(scale * 100)}%`;
