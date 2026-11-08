@@ -2,25 +2,18 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Elden Ring Interactive Map</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>엘든링 고화질 맵</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&display=swap');
-
         body, html {
             margin: 0;
             padding: 0;
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background-color: #090a0c;
-            font-family: 'Cinzel', serif, system-ui;
-            user-select: none;
+            background-color: #111;
         }
 
-        /* 뷰포트 영역 */
+        /* 줌/팬이 적용될 래퍼 영역 */
         #viewport {
             width: 100vw;
             height: 100vh;
@@ -33,240 +26,66 @@
             cursor: grabbing;
         }
 
-        /* 2x4 맵 타일 그리드 컨테이너 */
+        /* 맵 전체를 감싸는 컨테이너 */
         .map-container {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            line-height: 0;
+            grid-template-columns: repeat(2, 1fr); /* 가로 2열 배치 */
+            line-height: 0; /* 이미지 하단에 생기는 미세한 여백 제거 */
             position: absolute;
             transform-origin: 0 0;
-            will-change: transform;
+            user-select: none;
         }
 
-        /* 타일 이미지 틈새 방지 및 선명도 유지 */
+        /* 개별 이미지 조각 스타일 */
         .map-container img {
             width: 100%;
             height: auto;
             display: block;
-            margin: -0.5px;
+            margin: 0;
             padding: 0;
             pointer-events: none;
-            image-rendering: -webkit-optimize-contrast;
-        }
-
-        /* 엘든링 스타일 패널 */
-        .elden-panel {
-            background: linear-gradient(135deg, rgba(20, 22, 26, 0.92) 0%, rgba(12, 13, 16, 0.95) 100%);
-            border: 1px solid rgba(212, 195, 145, 0.35);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7), inset 0 0 12px rgba(212, 195, 145, 0.05);
-            backdrop-filter: blur(8px);
-        }
-
-        .elden-btn {
-            background: rgba(32, 35, 42, 0.8);
-            border: 1px solid rgba(212, 195, 145, 0.3);
-            color: #d4c391;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .elden-btn:hover {
-            background: rgba(212, 195, 145, 0.2);
-            color: #ffffff;
-            border-color: #f0e6d2;
-            box-shadow: 0 0 10px rgba(212, 195, 145, 0.3);
-        }
-
-        .elden-btn.active {
-            background: rgba(212, 195, 145, 0.3);
-            color: #fff8e7;
-            border-color: #f59e0b;
-            box-shadow: 0 0 12px rgba(245, 158, 11, 0.4);
-        }
-
-        /* 분위기를 더하는 비네트 오버레이 */
-        .vignette {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.8);
-            z-index: 5;
         }
     </style>
 </head>
 <body>
 
-    <!-- 비네트 효과 -->
-    <div class="vignette"></div>
-
-    <!-- 좌측 사이드바 인터페이스 -->
-    <div class="fixed top-5 left-5 z-20 w-80 flex flex-col gap-3 pointer-events-auto">
-        <!-- 검색 패널 -->
-        <div class="elden-panel p-4 rounded-lg flex flex-col gap-3">
-            <div class="flex items-center justify-between border-b border-amber-500/20 pb-2">
-                <div class="flex items-center gap-2">
-                    <div class="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-[0_0_8px_#f59e0b]"></div>
-                    <h1 class="text-lg font-bold tracking-widest text-amber-200 uppercase drop-shadow">ELDEN MAP</h1>
-                </div>
-                <span class="text-[10px] text-amber-500/60 font-mono tracking-wider">v1.0</span>
-            </div>
-            
-            <!-- 검색 입력창 -->
-            <div class="relative flex items-center">
-                <input type="text" id="searchInput" placeholder="검색어 입력 (축복, 보스, 던전...)" 
-                    class="w-full bg-black/60 border border-amber-500/30 rounded pl-3 pr-9 py-2 text-sm text-amber-100 placeholder-amber-200/40 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/50 transition">
-                <svg class="w-4 h-4 absolute right-3 text-amber-400/70 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 1114 0z"></path>
-                </svg>
-            </div>
-        </div>
-
-        <!-- 퀘스트 라인 메뉴 (기본 OFF 상태) -->
-        <div class="elden-panel p-3 rounded-lg flex flex-col gap-2">
-            <div class="text-[11px] font-bold text-amber-400/70 uppercase tracking-widest px-1 pb-1 border-b border-amber-500/10">퀘스트 라인</div>
-
-            <!-- 1. 별의 세기 -->
-            <button class="category-btn elden-btn w-full py-2 px-3 rounded text-left text-sm font-semibold flex items-center justify-between group" data-cat="grace">
-                <span class="flex items-center gap-2.5">
-                    <span class="w-5 h-5 rounded bg-amber-500/20 text-amber-300 text-xs flex items-center justify-center font-bold font-mono">1</span>
-                    <span>별의 세기</span>
-                </span>
-                <span class="status-indicator text-xs text-amber-500/40 group-hover:text-amber-200">OFF</span>
-            </button>
-            
-            <!-- 2. 어두운 자들의 시대 -->
-            <button class="category-btn elden-btn w-full py-2 px-3 rounded text-left text-sm font-semibold flex items-center justify-between group" data-cat="boss">
-                <span class="flex items-center gap-2.5">
-                    <span class="w-5 h-5 rounded bg-amber-500/20 text-amber-300 text-xs flex items-center justify-center font-bold font-mono">2</span>
-                    <span>어두운 자들의 시대</span>
-                </span>
-                <span class="status-indicator text-xs text-amber-500/40 group-hover:text-amber-200">OFF</span>
-            </button>
-
-            <!-- 3. 규율의 시대 -->
-            <button class="category-btn elden-btn w-full py-2 px-3 rounded text-left text-sm font-semibold flex items-center justify-between group" data-cat="dungeon">
-                <span class="flex items-center gap-2.5">
-                    <span class="w-5 h-5 rounded bg-amber-500/20 text-amber-300 text-xs flex items-center justify-center font-bold font-mono">3</span>
-                    <span>규율의 시대</span>
-                </span>
-                <span class="status-indicator text-xs text-amber-500/40 group-hover:text-amber-200">OFF</span>
-            </button>
-
-            <!-- 4. 절망의 축복 -->
-            <button class="category-btn elden-btn w-full py-2 px-3 rounded text-left text-sm font-semibold flex items-center justify-between group" data-cat="dungeon">
-                <span class="flex items-center gap-2.5">
-                    <span class="w-5 h-5 rounded bg-amber-500/20 text-amber-300 text-xs flex items-center justify-center font-bold font-mono">3</span>
-                    <span>절망의 축복</span>
-                </span>
-                <span class="status-indicator text-xs text-amber-500/40 group-hover:text-amber-200">OFF</span>
-            </button>
-
-            <!-- 5. 미친 불의 왕 -->
-            <button class="category-btn elden-btn w-full py-2 px-3 rounded text-left text-sm font-semibold flex items-center justify-between group" data-cat="item">
-                <span class="flex items-center gap-2.5">
-                    <span class="w-5 h-5 rounded bg-amber-500/20 text-amber-300 text-xs flex items-center justify-center font-bold font-mono">4</span>
-                    <span>미친 불의 왕</span>
-                </span>
-                <span class="status-indicator text-xs text-amber-500/40 group-hover:text-amber-200">OFF</span>
-            </button>
-        </div>
-    </div>
-
-    <!-- 하단 줌 상태 표시 패널 -->
-    <div class="info-panel elden-panel fixed bottom-6 left-6 z-10 px-4 py-2 rounded-md text-xs tracking-wider text-amber-300 font-mono">
-        ZOOM: <span id="zoomText" class="text-amber-100 font-bold">35%</span>
-    </div>
-
-    <!-- 우측 하단 컨트롤 버튼 패널 -->
-    <div class="controls-panel elden-panel fixed bottom-6 right-6 z-10 p-2 rounded-lg flex flex-col gap-2">
-        <button id="zoomInBtn" class="elden-btn w-10 h-10 rounded font-bold text-xl flex items-center justify-center" title="Zoom In">+</button>
-        <button id="zoomOutBtn" class="elden-btn w-10 h-10 rounded font-bold text-xl flex items-center justify-center" title="Zoom Out">−</button>
-        <button id="resetBtn" class="elden-btn w-10 h-10 rounded font-bold text-lg flex items-center justify-center" title="Reset View">⟲</button>
-    </div>
-
-    <!-- 메인 뷰포트 및 맵 타일 캔버스 -->
     <div id="viewport">
         <div class="map-container" id="mapContainer">
-            <!-- Row 1 -->
-            <img src="map_1.webp" alt="Map Tile 1" onerror="this.src='https://placehold.co/2550x2404/1a1c23/d4c391?text=Tile+1+(map_1.webp)';">
-            <img src="map_2.webp" alt="Map Tile 2" onerror="this.src='https://placehold.co/2550x2404/1a1c23/d4c391?text=Tile+2+(map_2.webp)';">
-            <!-- Row 2 -->
-            <img src="map_3.webp" alt="Map Tile 3" onerror="this.src='https://placehold.co/2550x2404/1a1c23/d4c391?text=Tile+3+(map_3.webp)';">
-            <img src="map_4.webp" alt="Map Tile 4" onerror="this.src='https://placehold.co/2550x2404/1a1c23/d4c391?text=Tile+4+(map_4.webp)';">
-            <!-- Row 3 -->
-            <img src="map_5.webp" alt="Map Tile 5" onerror="this.src='https://placehold.co/2550x2404/1a1c23/d4c391?text=Tile+5+(map_5.webp)';">
-            <img src="map_6.webp" alt="Map Tile 6" onerror="this.src='https://placehold.co/2550x2404/1a1c23/d4c391?text=Tile+6+(map_6.webp)';">
-            <!-- Row 4 -->
-            <img src="map_7.webp" alt="Map Tile 7" onerror="this.src='https://placehold.co/2550x2404/1a1c23/d4c391?text=Tile+7+(map_7.webp)';">
-            <img src="map_8.webp" alt="Map Tile 8" onerror="this.src='https://placehold.co/2550x2404/1a1c23/d4c391?text=Tile+8+(map_8.webp)';">
+            <!-- 1행 (좌우) -->
+            <img src="map_1.webp" alt="맵 조각 1">
+            <img src="map_2.webp" alt="맵 조각 2">
+            <!-- 2행 (좌우) -->
+            <img src="map_3.webp" alt="맵 조각 3">
+            <img src="map_4.webp" alt="맵 조각 4">
+            <!-- 3행 (좌우) -->
+            <img src="map_5.webp" alt="맵 조각 5">
+            <img src="map_6.webp" alt="맵 조각 6">
+            <!-- 4행 (좌우) -->
+            <img src="map_7.webp" alt="맵 조각 7">
+            <img src="map_8.webp" alt="맵 조각 8">
         </div>
     </div>
 
-    <!-- 인터랙션 및 맵 제어 스크립트 -->
     <script>
         const viewport = document.getElementById('viewport');
         const container = document.getElementById('mapContainer');
-        const zoomText = document.getElementById('zoomText');
-        const zoomInBtn = document.getElementById('zoomInBtn');
-        const zoomOutBtn = document.getElementById('zoomOutBtn');
-        const resetBtn = document.getElementById('resetBtn');
-        const categoryButtons = document.querySelectorAll('.category-btn');
-        const searchInput = document.getElementById('searchInput');
 
-        let scale = 0.35;
+        let scale = 1;
+        let panning = false;
         let pointX = 0;
         let pointY = 0;
-        let panning = false;
         let startX = 0;
         let startY = 0;
 
-        // 초기 뷰 설정 (35% 스케일 및 화면 정중앙 배치)
-        function initView() {
-            scale = 0.35;
-            if (!container) return;
-            const containerWidth = container.offsetWidth;
-            const containerHeight = container.offsetHeight;
-
-            pointX = (window.innerWidth - (containerWidth * scale)) / 2;
-            pointY = (window.innerHeight - (containerHeight * scale)) / 2;
-        
-            updateTransform();
-        }
-
-        // 변형 적용 및 줌 텍스트 갱신
-        function updateTransform() {
-            if (!container) return;
+        function setTransform() {
             container.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
-            if (zoomText) {
-                zoomText.innerText = `${Math.round(scale * 100)}%`;
-            }
         }
 
-        // 줌인/줌아웃 엔진
-        function zoom(deltaScale, centerX, centerY) {
-            const minScale = 0.15;
-            const maxScale = 12.0;
-            const newScale = Math.max(minScale, Math.min(scale * deltaScale, maxScale));
-            const factor = newScale / scale;
-
-            pointX = centerX - (centerX - pointX) * factor;
-            pointY = centerY - (centerY - pointY) * factor;
-            scale = newScale;
-
-            updateTransform();
-        }
-
-        // 마우스 드래그 이동
-        if (viewport) {
-            viewport.addEventListener('mousedown', (e) => {
-                if (e.button !== 0) return;
-                panning = true;
-                startX = e.clientX - pointX;
-                startY = e.clientY - pointY;
-            });
-        }
+        viewport.addEventListener('mousedown', (e) => {
+            panning = true;
+            startX = e.clientX - pointX;
+            startY = e.clientY - pointY;
+        });
 
         window.addEventListener('mouseup', () => {
             panning = false;
@@ -276,67 +95,30 @@
             if (!panning) return;
             pointX = e.clientX - startX;
             pointY = e.clientY - startY;
-            updateTransform();
+            setTransform();
         });
 
-        // 휠 줌
-        if (viewport) {
-            viewport.addEventListener('wheel', (e) => {
-                e.preventDefault();
-                const delta = e.deltaY < 0 ? 1.15 : 1 / 1.15;
-                zoom(delta, e.clientX, e.clientY);
-            }, { passive: false });
-        }
+        viewport.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const xs = (e.clientX - pointX) / scale;
+            const ys = (e.clientY - pointY) / scale;
+            
+            const delta = -e.deltaY;
+            if (delta > 0) {
+                scale *= 1.1;
+            } else {
+                scale /= 1.1;
+            }
 
-        // 버튼 제어 이벤트
-        if (zoomInBtn) {
-            zoomInBtn.addEventListener('click', () => {
-                zoom(1.3, window.innerWidth / 2, window.innerHeight / 2);
-            });
-        }
+            // 확대/축소 범위 제한 (최소 0.5배, 최대 10배)
+            scale = Math.max(0.5, Math.min(scale, 10));
 
-        if (zoomOutBtn) {
-            zoomOutBtn.addEventListener('click', () => {
-                zoom(1 / 1.3, window.innerWidth / 2, window.innerHeight / 2);
-            });
-        }
+            pointX = e.clientX - xs * scale;
+            pointY = e.clientY - ys * scale;
 
-        if (resetBtn) {
-            resetBtn.addEventListener('click', initView);
-        }
-
-        // 사이드바 카테고리 버튼 토글 기능
-        categoryButtons.forEach(btn => {
-            btn.addEventListener('click', () => {
-                btn.classList.toggle('active');
-                const indicator = btn.querySelector('.status-indicator');
-                if (!indicator) return;
-
-                if (btn.classList.contains('active')) {
-                    indicator.innerText = 'ON';
-                    indicator.classList.remove('text-amber-500/40');
-                    indicator.classList.add('text-amber-400/80');
-                } else {
-                    indicator.innerText = 'OFF';
-                    indicator.classList.remove('text-amber-400/80');
-                    indicator.classList.add('text-amber-500/40');
-                }
-            });
-        });
-
-        // 검색창 입력 이벤트
-        if (searchInput) {
-            searchInput.addEventListener('input', (e) => {
-                const query = e.target.value.trim().toLowerCase();
-                if (query.length > 0) {
-                    console.log(`Filtering markers for query: ${query}`);
-                }
-            });
-        }
-
-        // 페이지 로드 시 초기화 실행
-        window.addEventListener('load', initView);
-        updateTransform();
+            setTransform();
+        }, { passive: false });
     </script>
+
 </body>
 </html>
