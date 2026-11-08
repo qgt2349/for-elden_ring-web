@@ -1,4 +1,4 @@
-    <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
@@ -43,7 +43,7 @@
             will-change: transform;
         }
 
-        /* Map Tiles - Seam prevention using micro negative margin */
+        /* Map Tiles - Seam prevention & Sharpness rendering */
         .map-container img {
             width: 100%;
             height: auto;
@@ -51,6 +51,7 @@
             margin: -0.5px;
             padding: 0;
             pointer-events: none;
+            image-rendering: -webkit-optimize-contrast;
         }
 
         /* Custom Elden Ring Style Panel */
@@ -100,7 +101,7 @@
     <!-- Ambient Overlay -->
     <div class="vignette"></div>
 
-    <!-- Left Sidebar Interface matching User Sketch -->
+    <!-- Left Sidebar Interface -->
     <div class="fixed top-5 left-5 z-20 w-80 flex flex-col gap-3 pointer-events-auto">
         <!-- Search Box Panel -->
         <div class="elden-panel p-4 rounded-lg flex flex-col gap-3">
@@ -112,7 +113,7 @@
                 <span class="text-[10px] text-amber-500/60 font-mono tracking-wider">v1.0</span>
             </div>
             
-            <!-- Search Input with Magnifying Glass Icon -->
+            <!-- Search Input -->
             <div class="relative flex items-center">
                 <input type="text" id="searchInput" placeholder="검색어 입력 (축복, 보스, 던전...)" 
                     class="w-full bg-black/60 border border-amber-500/30 rounded pl-3 pr-9 py-2 text-sm text-amber-100 placeholder-amber-200/40 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/50 transition">
@@ -122,7 +123,7 @@
             </div>
         </div>
 
-        <!-- Category Menu List (1, 2, 3, 4) -->
+        <!-- Category Menu List (Default OFF) -->
         <div class="elden-panel p-3 rounded-lg flex flex-col gap-2">
             <div class="text-[11px] font-bold text-amber-400/70 uppercase tracking-widest px-1 pb-1 border-b border-amber-500/10">퀘스트 라인</div>
 
@@ -134,7 +135,6 @@
                 </span>
                 <span class="status-indicator text-xs text-amber-500/40 group-hover:text-amber-200">OFF</span>
             </button>
-            
             
             <!-- 2. 피아 루트 -->
             <button class="category-btn elden-btn w-full py-2 px-3 rounded text-left text-sm font-semibold flex items-center justify-between group" data-cat="boss">
@@ -154,7 +154,7 @@
                 <span class="status-indicator text-xs text-amber-500/40 group-hover:text-amber-200">OFF</span>
             </button>
 
-            <!-- 5. 똥먹자 루트 -->
+            <!-- 4. 똥먹자 루트 -->
             <button class="category-btn elden-btn w-full py-2 px-3 rounded text-left text-sm font-semibold flex items-center justify-between group" data-cat="dungeon">
                 <span class="flex items-center gap-2.5">
                     <span class="w-5 h-5 rounded bg-amber-500/20 text-amber-300 text-xs flex items-center justify-center font-bold font-mono">3</span>
@@ -176,7 +176,7 @@
 
     <!-- Zoom Level Status Badge -->
     <div class="info-panel elden-panel fixed bottom-6 left-6 z-10 px-4 py-2 rounded-md text-xs tracking-wider text-amber-300 font-mono">
-        ZOOM: <span id="zoomText" class="text-amber-100 font-bold">100%</span>
+        ZOOM: <span id="zoomText" class="text-amber-100 font-bold">35%</span>
     </div>
 
     <!-- Map UI Controls -->
@@ -215,116 +215,33 @@
         const categoryButtons = document.querySelectorAll('.category-btn');
         const searchInput = document.getElementById('searchInput');
 
-        // Transform State Variables
-        let scale = 1; // 배율 100% 설정
+        // Transform State Variables (0.35 scale prevents image blurring / 100% stretch issues)
+        let scale = 0.35;
         let pointX = 0;
         let pointY = 0;
         let panning = false;
         let startX = 0;
         let startY = 0;
 
+        // Center alignment function with 35% scale applied
         function initView() {
-            // 지도가 한눈에 보이도록 적절한 초기 배율 설정 (예: 0.35 또는 0.4)
             scale = 0.35; 
-    
-            // 맵 컨테이너의 실제 원본 크기 측정
             const containerWidth = container.offsetWidth;
             const containerHeight = container.offsetHeight;
-    
-            // 축소된 배율(scale)이 적용된 상태를 반영하여 화면 중앙 좌표 계산
+
             pointX = (window.innerWidth - (containerWidth * scale)) / 2;
             pointY = (window.innerHeight - (containerHeight * scale)) / 2;
         
             updateTransform();
         }
 
-                // Apply Transform Updates
-        function updateTransform() {
-            container.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
-            zoomText.innerText = `${Math.round(scale * 100)}%`;
-        }
-
-        // Focal Point Zoom Engine
-        function zoom(deltaScale, centerX, centerY) {
-            const minScale = 0.15;
-            const maxScale = 12.0;
-            const newScale = Math.max(minScale, Math.min(scale * deltaScale, maxScale));
-            const factor = newScale / scale;
-
-            pointX = centerX - (centerX - pointX) * factor;
-            pointY = centerY - (centerY - pointY) * factor;
-            scale = newScale;
-
-            updateTransform();
-        }
-
-        // Mouse Drag / Pan Logic
-        viewport.addEventListener('mousedown', (e) => {
-            if (e.button !== 0) return;
-            panning = true;
-            startX = e.clientX - pointX;
-            startY = e.clientY - pointY;
-        });
-
-        window.addEventListener('mouseup', () => {
-            panning = false;
-        });
-
-        window.addEventListener('mousemove', (e) => {
-            if (!panning) return;
-            pointX = e.clientX - startX;
-            pointY = e.clientY - startY;
-            updateTransform();
-        });
-
-        // Mouse Wheel Smooth Zooming
-        viewport.addEventListener('wheel', (e) => {
-            e.preventDefault();
-            const delta = e.deltaY < 0 ? 1.15 : 1 / 1.15;
-            zoom(delta, e.clientX, e.clientY);
-        }, { passive: false });
-
-        // HUD Button Controls
-        zoomInBtn.addEventListener('click', () => {
-            zoom(1.3, window.innerWidth / 2, window.innerHeight / 2);
-        });
-
-        zoomOutBtn.addEventListener('click', () => {
-            zoom(1 / 1.3, window.innerWidth / 2, window.innerHeight / 2);
-        });
-
-        resetBtn.addEventListener('click', initView);
-
-        // Category Toggle Interaction
-        categoryButtons.forEach(btn => {
-            btn.addEventListener('click', () => {
-                btn.classList.toggle('active');
-                const indicator = btn.querySelector('.status-indicator');
-                if (btn.classList.contains('active')) {
-                    indicator.innerText = 'ON';
-                    indicator.classList.replace('text-amber-500/40', 'text-amber-400/80');
-                } else {
-                    indicator.innerText = 'OFF';
-                    indicator.classList.replace('text-amber-400/80', 'text-amber-500/40');
-                }
-            });
-        });
-
-        // Search Input Handling
-        searchInput.addEventListener('input', (e) => {
-            const query = e.target.value.trim().toLowerCase();
-            if (query.length > 0) {
-                console.log(`Filtering markers for query: ${query}`);
-            }
-        });
-
-        // 페이지와 이미지가 완전히 로드된 시점에 최초 중앙 정렬 실행
-        window.addEventListener('load', initView);
-
         // Apply Transform Updates
         function updateTransform() {
+            if (!container) return;
             container.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
-            zoomText.innerText = `${Math.round(scale * 100)}%`;
+            if (zoomText) {
+                zoomText.innerText = `${Math.round(scale * 100)}%`;
+            }
         }
 
         // Focal Point Zoom Engine
@@ -342,12 +259,14 @@
         }
 
         // Mouse Drag / Pan Logic
-        viewport.addEventListener('mousedown', (e) => {
-            if (e.button !== 0) return;
-            panning = true;
-            startX = e.clientX - pointX;
-            startY = e.clientY - pointY;
-        });
+        if (viewport) {
+            viewport.addEventListener('mousedown', (e) => {
+                if (e.button !== 0) return;
+                panning = true;
+                startX = e.clientX - pointX;
+                startY = e.clientY - pointY;
+            });
+        }
 
         window.addEventListener('mouseup', () => {
             panning = false;
@@ -361,56 +280,7 @@
         });
 
         // Mouse Wheel Smooth Zooming
-        viewport.addEventListener('wheel', (e) => {
-            e.preventDefault();
-            const delta = e.deltaY < 0 ? 1.15 : 1 / 1.15;
-            zoom(delta, e.clientX, e.clientY);
-        }, { passive: false });
-
-        // HUD Button Controls
-        zoomInBtn.addEventListener('click', () => {
-            zoom(1.3, window.innerWidth / 2, window.innerHeight / 2);
-        });
-
-        zoomOutBtn.addEventListener('click', () => {
-            zoom(1 / 1.3, window.innerWidth / 2, window.innerHeight / 2);
-        });
-
-        resetBtn.addEventListener('click', () => {
-            scale = 0.35;
-            pointX = 100;
-            pointY = 50;
-            updateTransform();
-        });
-
-        // Category Toggle Interaction
-        categoryButtons.forEach(btn => {
-            btn.addEventListener('click', () => {
-                btn.classList.toggle('active');
-                const indicator = btn.querySelector('.status-indicator');
-                if (btn.classList.contains('active')) {
-                    indicator.innerText = 'ON';
-                    indicator.classList.replace('text-amber-500/40', 'text-amber-400/80');
-                } else {
-                    indicator.innerText = 'OFF';
-                    indicator.classList.replace('text-amber-400/80', 'text-amber-500/40');
-                }
-            });
-        });
-
-        // Search Input Handling
-        searchInput.addEventListener('input', (e) => {
-            const query = e.target.value.trim().toLowerCase();
-            if (query.length > 0) {
-                console.log(`Filtering markers for query: ${query}`);
-            }
-        });
-
-        // Window Resize Handling
-        window.addEventListener('resize', updateTransform);
-
-        // Initial setup
-        updateTransform();
-    </script>
-</body>
-</html>
+        if (viewport) {
+            viewport.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const delta = e.deltaY < 0 ?
