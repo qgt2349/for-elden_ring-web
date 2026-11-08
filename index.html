@@ -2,9 +2,48 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>내 첫 웹사이트</title>
+    <title>엘든링 고화질 맵</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: #111; /* 배경을 어둡게 설정하여 맵이 돋보이게 함 */
+            display: flex;
+            justify-content: center;
+        }
+        
+        /* 맵 전체를 감싸는 컨테이너 */
+        .map-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr); /* 가로 2열 배치 */
+            line-height: 0; /* 이미지 하단에 생기는 미세한 여백 제거 */
+        }
+
+        /* 개별 이미지 조각 스타일 */
+        .map-container img {
+            width: 100%;
+            height: auto;
+            display: block;
+            margin: 0;
+            padding: 0;
+        }
+    </style>
 </head>
 <body>
-    <h1>안녕하세요! 깃허브로 만든 무료 웹사이트입니다.</h1>
+
+    <div class="map-container">
+        <!-- 1행 (좌우) -->
+        <img src="map_1.webp" alt="맵 조각 1">
+        <img src="map_2.webp" alt="맵 조각 2">
+        <!-- 2행 (좌우) -->
+        <img src="map_3.webp" alt="맵 조각 3">
+        <img src="map_4.webp" alt="맵 조각 4">
+        <!-- 3행 (좌우) -->
+        <img src="map_5.webp" alt="맵 조각 5">
+        <img src="map_6.webp" alt="맵 조각 6">
+        <!-- 4행 (좌우) -->
+        <img src="map_7.webp" alt="맵 조각 7">
+        <img src="map_8.webp" alt="맵 조각 8">
+    </div>
+
 </body>
 </html>
