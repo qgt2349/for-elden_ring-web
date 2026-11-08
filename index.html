@@ -132,7 +132,7 @@
                     <span class="w-5 h-5 rounded bg-amber-500/20 text-amber-300 text-xs flex items-center justify-center font-bold font-mono">1</span>
                     <span>별의 세기</span>
                 </span>
-                <span class="status-indicator text-xs text-amber-400/80 group-hover:text-amber-200">OFF</span>
+                <span class="status-indicator text-xs text-amber-500/80 group-hover:text-amber-200">OFF</span>
             </button>
             
             <!-- 2. 피아 루트 -->
@@ -141,7 +141,7 @@
                     <span class="w-5 h-5 rounded bg-amber-500/20 text-amber-300 text-xs flex items-center justify-center font-bold font-mono">2</span>
                     <span>어두운 자들의 시대</span>
                 </span>
-                <span class="status-indicator text-xs text-amber-400/80 group-hover:text-amber-200">OFF</span>
+                <span class="status-indicator text-xs text-amber-500/80 group-hover:text-amber-200">OFF</span>
             </button>
 
             <!-- 3. 금가면 루트 -->
@@ -150,7 +150,7 @@
                     <span class="w-5 h-5 rounded bg-amber-500/20 text-amber-300 text-xs flex items-center justify-center font-bold font-mono">3</span>
                     <span>규율의 시대</span>
                 </span>
-                <span class="status-indicator text-xs text-amber-400/80 group-hover:text-amber-200">OFF</span>
+                <span class="status-indicator text-xs text-amber-500/80 group-hover:text-amber-200">OFF</span>
             </button>
 
             <!-- 5. 똥먹자 루트 -->
@@ -159,7 +159,7 @@
                     <span class="w-5 h-5 rounded bg-amber-500/20 text-amber-300 text-xs flex items-center justify-center font-bold font-mono">3</span>
                     <span>절망의 축복</span>
                 </span>
-                <span class="status-indicator text-xs text-amber-400/80 group-hover:text-amber-200">OFF</span>
+                <span class="status-indicator text-xs text-amber-500/80 group-hover:text-amber-200">OFF</span>
             </button>
 
             <!-- 5. 미친불 루트 -->
@@ -168,7 +168,7 @@
                     <span class="w-5 h-5 rounded bg-amber-500/20 text-amber-300 text-xs flex items-center justify-center font-bold font-mono">4</span>
                     <span>미친 불의 왕</span>
                 </span>
-                <span class="status-indicator text-xs text-amber-400/80 group-hover:text-amber-200">OFF</span>
+                <span class="status-indicator text-xs text-amber-500/80 group-hover:text-amber-200">OFF</span>
             </button>
         </div>
     </div>
@@ -215,26 +215,109 @@
         const searchInput = document.getElementById('searchInput');
 
         // Transform State Variables
-        let scale = 0.35;
-        let pointX = 100;
-        let pointY = 50;
+        let scale = 1; // 배율 100% 설정
+        let pointX = 0;
+        let pointY = 0;
         let panning = false;
         let startX = 0;
         let startY = 0;
 
         function initView() {
-            scale = 1; // 배율 100% 설정
+            scale = 1; // 배율 100% 고정
     
             // 맵 컨테이너의 실제 크기 측정
             const containerWidth = container.offsetWidth;
             const containerHeight = container.offsetHeight;
     
-            // 뷰포트(창) 중앙에 지도의 중심이 오도록 좌표 계산
+            // 접속한 브라우저 창(Window) 크기를 기준으로 중앙 좌표 계산
             pointX = (window.innerWidth - containerWidth) / 2;
             pointY = (window.innerHeight - containerHeight) / 2;
         
             updateTransform();
         }
+
+        // Apply Transform Updates
+        function updateTransform() {
+            container.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
+            zoomText.innerText = `${Math.round(scale * 100)}%`;
+        }
+
+        // Focal Point Zoom Engine
+        function zoom(deltaScale, centerX, centerY) {
+            const minScale = 0.15;
+            const maxScale = 12.0;
+            const newScale = Math.max(minScale, Math.min(scale * deltaScale, maxScale));
+            const factor = newScale / scale;
+
+            pointX = centerX - (centerX - pointX) * factor;
+            pointY = centerY - (centerY - pointY) * factor;
+            scale = newScale;
+
+            updateTransform();
+        }
+
+        // Mouse Drag / Pan Logic
+        viewport.addEventListener('mousedown', (e) => {
+            if (e.button !== 0) return;
+            panning = true;
+            startX = e.clientX - pointX;
+            startY = e.clientY - pointY;
+        });
+
+        window.addEventListener('mouseup', () => {
+            panning = false;
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!panning) return;
+            pointX = e.clientX - startX;
+            pointY = e.clientY - startY;
+            updateTransform();
+        });
+
+        // Mouse Wheel Smooth Zooming
+        viewport.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const delta = e.deltaY < 0 ? 1.15 : 1 / 1.15;
+            zoom(delta, e.clientX, e.clientY);
+        }, { passive: false });
+
+        // HUD Button Controls
+        zoomInBtn.addEventListener('click', () => {
+            zoom(1.3, window.innerWidth / 2, window.innerHeight / 2);
+        });
+
+        zoomOutBtn.addEventListener('click', () => {
+            zoom(1 / 1.3, window.innerWidth / 2, window.innerHeight / 2);
+        });
+
+        resetBtn.addEventListener('click', initView);
+
+        // Category Toggle Interaction
+        categoryButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                btn.classList.toggle('active');
+                const indicator = btn.querySelector('.status-indicator');
+                if (btn.classList.contains('active')) {
+                    indicator.innerText = 'ON';
+                    indicator.classList.replace('text-amber-500/40', 'text-amber-400/80');
+                } else {
+                    indicator.innerText = 'OFF';
+                    indicator.classList.replace('text-amber-400/80', 'text-amber-500/40');
+                }
+            });
+        });
+
+        // Search Input Handling
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.trim().toLowerCase();
+            if (query.length > 0) {
+                console.log(`Filtering markers for query: ${query}`);
+            }
+        });
+
+        // 페이지와 이미지가 완전히 로드된 시점에 최초 중앙 정렬 실행
+        window.addEventListener('load', initView);
 
         // Apply Transform Updates
         function updateTransform() {
