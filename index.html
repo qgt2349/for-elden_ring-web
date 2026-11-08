@@ -4,18 +4,36 @@
     <meta charset="UTF-8">
     <title>엘든링 고화질 맵</title>
     <style>
-        body {
+        body, html {
             margin: 0;
-            background-color: #111; /* 배경을 어둡게 설정하여 맵이 돋보이게 함 */
-            display: flex;
-            justify-content: center;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #111;
         }
-        
+
+        /* 줌/팬이 적용될 래퍼 영역 */
+        #viewport {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+            cursor: grab;
+        }
+
+        #viewport:active {
+            cursor: grabbing;
+        }
+
         /* 맵 전체를 감싸는 컨테이너 */
         .map-container {
             display: grid;
             grid-template-columns: repeat(2, 1fr); /* 가로 2열 배치 */
             line-height: 0; /* 이미지 하단에 생기는 미세한 여백 제거 */
+            position: absolute;
+            transform-origin: 0 0;
+            user-select: none;
         }
 
         /* 개별 이미지 조각 스타일 */
@@ -25,25 +43,82 @@
             display: block;
             margin: 0;
             padding: 0;
+            pointer-events: none;
         }
     </style>
 </head>
 <body>
 
-    <div class="map-container">
-        <!-- 1행 (좌우) -->
-        <img src="map_1.webp" alt="맵 조각 1">
-        <img src="map_2.webp" alt="맵 조각 2">
-        <!-- 2행 (좌우) -->
-        <img src="map_3.webp" alt="맵 조각 3">
-        <img src="map_4.webp" alt="맵 조각 4">
-        <!-- 3행 (좌우) -->
-        <img src="map_5.webp" alt="맵 조각 5">
-        <img src="map_6.webp" alt="맵 조각 6">
-        <!-- 4행 (좌우) -->
-        <img src="map_7.webp" alt="맵 조각 7">
-        <img src="map_8.webp" alt="맵 조각 8">
+    <div id="viewport">
+        <div class="map-container" id="mapContainer">
+            <!-- 1행 (좌우) -->
+            <img src="map_1.webp" alt="맵 조각 1">
+            <img src="map_2.webp" alt="맵 조각 2">
+            <!-- 2행 (좌우) -->
+            <img src="map_3.webp" alt="맵 조각 3">
+            <img src="map_4.webp" alt="맵 조각 4">
+            <!-- 3행 (좌우) -->
+            <img src="map_5.webp" alt="맵 조각 5">
+            <img src="map_6.webp" alt="맵 조각 6">
+            <!-- 4행 (좌우) -->
+            <img src="map_7.webp" alt="맵 조각 7">
+            <img src="map_8.webp" alt="맵 조각 8">
+        </div>
     </div>
+
+    <script>
+        const viewport = document.getElementById('viewport');
+        const container = document.getElementById('mapContainer');
+
+        let scale = 1;
+        let panning = false;
+        let pointX = 0;
+        let pointY = 0;
+        let startX = 0;
+        let startY = 0;
+
+        function setTransform() {
+            container.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
+        }
+
+        viewport.addEventListener('mousedown', (e) => {
+            panning = true;
+            startX = e.clientX - pointX;
+            startY = e.clientY - pointY;
+        });
+
+        window.addEventListener('mouseup', () => {
+            panning = false;
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!panning) return;
+            pointX = e.clientX - startX;
+            pointY = e.clientY - startY;
+            setTransform();
+        });
+
+        viewport.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const xs = (e.clientX - pointX) / scale;
+            const ys = (e.clientY - pointY) / scale;
+            
+            const delta = -e.deltaY;
+            if (delta > 0) {
+                scale *= 1.1;
+            } else {
+                scale /= 1.1;
+            }
+
+            // 확대/축소 범위 제한 (최소 0.5배, 최대 10배)
+            scale = Math.max(0.5, Math.min(scale, 10));
+
+            pointX = e.clientX - xs * scale;
+            pointY = e.clientY - ys * scale;
+
+            setTransform();
+        }, { passive: false });
+    </script>
 
 </body>
 </html>
