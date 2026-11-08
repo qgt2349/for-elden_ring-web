@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+    <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
@@ -221,6 +221,20 @@
         let panning = false;
         let startX = 0;
         let startY = 0;
+
+        function initView() {
+            scale = 1; // 배율 100% 설정
+    
+            // 맵 컨테이너의 실제 크기 측정
+            const containerWidth = container.offsetWidth;
+            const containerHeight = container.offsetHeight;
+    
+            // 뷰포트(창) 중앙에 지도의 중심이 오도록 좌표 계산
+            pointX = (window.innerWidth - containerWidth) / 2;
+            pointY = (window.innerHeight - containerHeight) / 2;
+        
+            updateTransform();
+        }
 
         // Apply Transform Updates
         function updateTransform() {
